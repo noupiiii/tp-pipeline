@@ -9,6 +9,10 @@ x-airflow-common: &airflow-common
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
     AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+    # Default 120s; too tight under heavy host contention (e.g. a shared/loaded
+    # server) where gunicorn's workers can take a while to report ready, which
+    # otherwise gets the webserver killed as a false-positive startup failure.
+    AIRFLOW__WEBSERVER__WEB_SERVER_MASTER_TIMEOUT: "300"
     PYTHONPATH: /opt/airflow
     # PySpark's HDFS client has no Kerberos here; it takes its HDFS identity from
     # this env var. /data-lake is created root:supergroup by upload_to_datalake
