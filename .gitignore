@@ -25,5 +25,5 @@ docker/airflow/logs/
 .DS_Store
 Thumbs.db
 
-# Claude Code session-local files
+# Local tooling config (not part of the project)
 .claude/
