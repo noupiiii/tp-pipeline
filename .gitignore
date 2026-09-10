@@ -24,6 +24,3 @@ docker/airflow/logs/
 # OS
 .DS_Store
 Thumbs.db
-
-# Local tooling config (not part of the project)
-.claude/
