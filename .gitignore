@@ -1,0 +1,26 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+*.log
+.pytest_cache/
+.ruff_cache/
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+.idea/
+.vscode/
+*.egg-info/
+dist/
+build/
+
+# Docker volumes / Airflow
+airflow/logs/
+airflow/plugins/
+docker/airflow/logs/
+
+# OS
+.DS_Store
+Thumbs.db

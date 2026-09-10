@@ -1,0 +1,6 @@
+# Dev/test-only tools — not installed in the Airflow runtime image
+# (their versions can conflict with Airflow's own constraints file).
+pytest>=8.0,<9
+pytest-mock>=3.12,<4
+ruff>=0.5,<1
+responses>=0.25,<1

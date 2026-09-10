@@ -1,0 +1,155 @@
+name: tp-dialo
+
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: ./docker/airflow/Dockerfile
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+    PYTHONPATH: /opt/airflow
+    # PySpark's HDFS client has no Kerberos here; it takes its HDFS identity from
+    # this env var. /data-lake is created root:supergroup by upload_to_datalake
+    # (which authenticates explicitly as root via WebHDFS), so Spark needs the
+    # same identity to get write access.
+    HADOOP_USER_NAME: root
+    # src/config.py falls back to localhost/default values when these are unset;
+    # inside the Airflow containers they must point at the other services.
+    WEATHER_API_BASE_URL: ${WEATHER_API_BASE_URL:-https://api.open-meteo.com/v1/forecast}
+    WEATHER_LATITUDE: ${WEATHER_LATITUDE:-48.8566}
+    WEATHER_LONGITUDE: ${WEATHER_LONGITUDE:-2.3522}
+    WEATHER_CITY: ${WEATHER_CITY:-Paris}
+    HDFS_NAMENODE_HOST: namenode
+    HDFS_NAMENODE_PORT: "9870"
+    HDFS_RAW_PATH: ${HDFS_RAW_PATH:-/data-lake/raw/weather}
+    POSTGRES_HOST: postgres-dwh
+    POSTGRES_PORT: "5432"
+    POSTGRES_DB: ${POSTGRES_DB:-dwh}
+    POSTGRES_USER: ${POSTGRES_USER:-dwh_user}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+    POSTGRES_TABLE: ${POSTGRES_TABLE:-weather_hourly}
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./src:/opt/airflow/src
+    - ./data:/opt/airflow/data
+    - airflow_logs:/opt/airflow/logs
+  depends_on:
+    airflow-db:
+      condition: service_healthy
+
+services:
+  # --- Data Lake : Hadoop HDFS (pseudo-distribué) ---
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    environment:
+      - CLUSTER_NAME=tp-dialo
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    ports:
+      - "9870:9870"
+      - "9820:9000"
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - SERVICE_PRECONDITION=namenode:9870
+    depends_on:
+      - namenode
+    ports:
+      - "9864:9864"
+    volumes:
+      - hadoop_datanode:/hadoop/dfs/data
+
+  # --- Transformation : Spark ---
+  spark-master:
+    image: bitnamilegacy/spark:3.5
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+    ports:
+      - "7077:7077"
+      - "8081:8080"
+
+  spark-worker:
+    image: bitnamilegacy/spark:3.5
+    container_name: spark-worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    depends_on:
+      - spark-master
+
+  # --- Data Warehouse : PostgreSQL ---
+  postgres-dwh:
+    image: postgres:15
+    container_name: postgres-dwh
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dwh}
+      POSTGRES_USER: ${POSTGRES_USER:-dwh_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dwh_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-dwh_user}"]
+      interval: 5s
+      retries: 10
+
+  # --- Métadonnées Airflow (base séparée du DWH) ---
+  airflow-db:
+    image: postgres:15
+    container_name: airflow-db
+    environment:
+      POSTGRES_DB: airflow
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+    volumes:
+      - postgres_airflow_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 5s
+      retries: 10
+
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username "${_AIRFLOW_WWW_USER_USERNAME:-admin}" \
+          --password "${_AIRFLOW_WWW_USER_PASSWORD:-admin}" \
+          --firstname Admin --lastname User --role Admin --email admin@example.com || true
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow-webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    depends_on:
+      - airflow-init
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow-scheduler
+    command: scheduler
+    depends_on:
+      - airflow-init
+
+volumes:
+  hadoop_namenode:
+  hadoop_datanode:
+  postgres_dwh_data:
+  postgres_airflow_data:
+  airflow_logs:
