@@ -33,7 +33,13 @@ x-airflow-common: &airflow-common
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./src:/opt/airflow/src
-    - ./data:/opt/airflow/data
+    # /opt/airflow/data is intentionally NOT bind-mounted from the host: the
+    # container runs as a non-root UID (AIRFLOW_UID), and a host-created
+    # ./data directory is rarely writable by it (works by accident on Docker
+    # Desktop, fails with Permission denied on a real Linux host). The raw
+    # JSON written there is only a staging file before the HDFS upload — HDFS
+    # is the durable copy — so it's fine for it to live in the container's own
+    # writable filesystem instead.
     - airflow_logs:/opt/airflow/logs
   depends_on:
     airflow-db:
