@@ -1,4 +1,4 @@
-# Rapport de processus — Pipeline de données TP Dialo
+# Rapport de processus — Pipeline de données TP Louis Aurélien
 
 Ce document trace l'exécution complète du pipeline, étape par étape, avec les preuves
 d'exécution (logs, requêtes, états des tâches) relevées sur un run réel de bout en bout.

@@ -11,7 +11,7 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 
 default_args = {
-    "owner": "tp-dialo",
+    "owner": "tp-louis-aurelien",
     "retries": 2,
     "retry_delay": timedelta(minutes=5),
 }
@@ -56,7 +56,7 @@ with DAG(
     schedule="@daily",
     start_date=datetime(2026, 1, 1),
     catchup=False,
-    tags=["etl", "weather", "tp-dialo"],
+    tags=["etl", "weather", "tp-louis-aurelien"],
 ) as dag:
     ingest = PythonOperator(task_id="ingest", python_callable=_ingest)
     upload_to_datalake = PythonOperator(task_id="upload_to_datalake", python_callable=_upload_to_datalake)

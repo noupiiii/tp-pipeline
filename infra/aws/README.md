@@ -31,8 +31,8 @@ sudo usermod -aG docker $USER
 ## 3. Déployer le pipeline
 
 ```bash
-git clone <url-du-repo> tp-dialo
-cd tp-dialo
+git clone <url-du-repo> tp-louis-aurelien
+cd tp-louis-aurelien
 cp .env.example .env
 # éditer .env : mettre un mot de passe PostgreSQL fort, etc.
 docker compose up -d

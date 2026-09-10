@@ -1,4 +1,4 @@
-# TP Dialo — Pipeline de données Cloud & Big Data
+# TP Louis Aurélien — Pipeline de données Cloud & Big Data
 
 Pipeline de données de bout en bout : ingestion API → Data Lake (HDFS) → transformation (Spark/Python) →
 Data Warehouse (PostgreSQL) → orchestration (Airflow) → conteneurisation (Docker) → CI/CD (GitHub Actions) →
