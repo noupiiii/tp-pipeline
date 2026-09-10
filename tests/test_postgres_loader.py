@@ -55,10 +55,15 @@ def test_load_dataframe_skips_rows_already_loaded(mocker):
     )
     load_dataframe(df, table="weather_hourly")
 
-    second_run_df = pd.concat(
-        [df, pd.DataFrame({"latitude": [48.86], "longitude": [2.35], "observed_at": ["2026-01-01T01:00:00"], "temperature_c": [3.9]})],
-        ignore_index=True,
+    new_row = pd.DataFrame(
+        {
+            "latitude": [48.86],
+            "longitude": [2.35],
+            "observed_at": ["2026-01-01T01:00:00"],
+            "temperature_c": [3.9],
+        }
     )
+    second_run_df = pd.concat([df, new_row], ignore_index=True)
     inserted = load_dataframe(second_run_df, table="weather_hourly")
 
     assert inserted == 1

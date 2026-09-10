@@ -75,8 +75,11 @@ def load_dataframe(
         df.to_sql(staging_table, conn, if_exists="replace", index=False)
         result = conn.execute(
             text(
+                # The WHERE clause is required for SQLite (used by the test suite)
+                # to disambiguate an INSERT...SELECT from an upsert-clause; harmless
+                # no-op on PostgreSQL.
                 f'INSERT INTO "{table}" ({column_list}) '
-                f'SELECT {column_list} FROM "{staging_table}" '
+                f'SELECT {column_list} FROM "{staging_table}" WHERE 1=1 '
                 f"ON CONFLICT ({conflict_clause}) DO NOTHING"
             )
         )
