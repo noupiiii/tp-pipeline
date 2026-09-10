@@ -43,7 +43,6 @@ services:
   # --- Data Lake : Hadoop HDFS (pseudo-distribué) ---
   namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
-    container_name: namenode
     environment:
       - CLUSTER_NAME=tp-dialo
       - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
@@ -55,7 +54,6 @@ services:
 
   datanode:
     image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
-    container_name: datanode
     environment:
       - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
       - SERVICE_PRECONDITION=namenode:9870
@@ -69,7 +67,6 @@ services:
   # --- Transformation : Spark ---
   spark-master:
     image: bitnamilegacy/spark:3.5
-    container_name: spark-master
     environment:
       - SPARK_MODE=master
     ports:
@@ -78,7 +75,6 @@ services:
 
   spark-worker:
     image: bitnamilegacy/spark:3.5
-    container_name: spark-worker
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
@@ -88,7 +84,6 @@ services:
   # --- Data Warehouse : PostgreSQL ---
   postgres-dwh:
     image: postgres:15
-    container_name: postgres-dwh
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-dwh}
       POSTGRES_USER: ${POSTGRES_USER:-dwh_user}
@@ -109,7 +104,6 @@ services:
   # --- Métadonnées Airflow (base séparée du DWH) ---
   airflow-db:
     image: postgres:15
-    container_name: airflow-db
     environment:
       POSTGRES_DB: airflow
       POSTGRES_USER: airflow
@@ -123,7 +117,6 @@ services:
 
   airflow-init:
     <<: *airflow-common
-    container_name: airflow-init
     entrypoint: /bin/bash
     command:
       - -c
@@ -136,7 +129,6 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
-    container_name: airflow-webserver
     command: webserver
     ports:
       - "${AIRFLOW_WEBSERVER_PORT:-8080}:8080"
@@ -145,7 +137,6 @@ services:
 
   airflow-scheduler:
     <<: *airflow-common
-    container_name: airflow-scheduler
     command: scheduler
     depends_on:
       - airflow-init
